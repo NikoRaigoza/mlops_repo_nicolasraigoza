@@ -8,6 +8,21 @@ Responsabilidades:
 3. Crear las variables derivadas.
 4. Construir el preprocesador (ColumnTransformer con 3 ramas).
 5. Separar los conjuntos de entrenamiento y evaluación.
+
+Flujo de transformación (todo queda dentro del pipeline que se guarda con el modelo):
+    datos crudos
+      -> limpiar_datos: valores inválidos a NaN; elimina puntaje (data leakage),
+         saldo_mora_codeudor (casi constante) y saldo_principal (redundante con saldo_total)
+      -> crear_variables: carga_cuota_salario, endeudamiento, sin_info_buro
+      -> ColumnTransformer
+           numeric:             mediana -> log(1 + x) -> estandarización
+           categoric:           moda -> OneHot (categorías con menos de 30 casos agrupadas)
+           categoric_ordinales: moda -> OrdinalEncoder (Decreciente < Estable < Creciente)
+
+Decisiones:
+- Variable objetivo Pago_atiempo: 1 = pagó a tiempo, 0 = no pagó a tiempo.
+- Separación temporal (corte 2025-06-01): se entrena con el pasado y se evalúa con el futuro.
+- Imputación, escalado y codificación se aprenden solo con el entrenamiento (sin data leakage).
 """
 
 # %% 1. Importaciones
@@ -37,8 +52,7 @@ except NameError:
 
 RUTA_DATOS = BASE_DIR.parent / "Base_de_datos.csv"
 
-TARGET_ORIGINAL = "Pago_atiempo"
-TARGET = "impago"
+TARGET = "Pago_atiempo"
 COLUMNA_FECHA = "fecha_prestamo"
 FECHA_CORTE = "2025-06-01"
 
@@ -132,12 +146,15 @@ def log_seguro(X):
 
 def construir_preprocesador() -> Pipeline:
     """Devuelve el pipeline de preprocesamiento (sin modelo)."""
+    # Pipelines para cada tipo de columna
+    # Si es numerico imputa con mediana, log(1+x) y estandariza.
     pipeline_numerico = Pipeline(steps=[
         ("imputer", SimpleImputer(strategy="median")),
         ("log", FunctionTransformer(log_seguro, feature_names_out="one-to-one")),
         ("scaler", StandardScaler()),
     ])
 
+    # Si es categorico imputa con moda y aplica OneHotEncoder (categorías raras agrupadas).
     pipeline_categorico = Pipeline(steps=[
         ("imputer", SimpleImputer(strategy="most_frequent")),
         ("onehot", OneHotEncoder(
@@ -147,6 +164,7 @@ def construir_preprocesador() -> Pipeline:
         )),
     ])
 
+    # Si es categorico ordinal imputa con moda y aplica OrdinalEncoder.
     pipeline_ordinal = Pipeline(steps=[
         ("imputer", SimpleImputer(strategy="most_frequent")),
         ("ordinal", OrdinalEncoder(
@@ -156,6 +174,7 @@ def construir_preprocesador() -> Pipeline:
         )),
     ])
 
+    # ColumnTransformer que aplica cada pipeline a su conjunto de columnas.
     column_transformer = ColumnTransformer(
         transformers=[
             ("numeric", pipeline_numerico, COLUMNAS_NUMERICAS),
@@ -165,6 +184,7 @@ def construir_preprocesador() -> Pipeline:
         remainder="drop",
     )
 
+    # Pipeline final que primero prepara los datos y luego aplica el ColumnTransformer.
     preprocesador = Pipeline(steps=[
         ("preparacion", FunctionTransformer(preparar_datos)),
         ("columnas", column_transformer),
@@ -179,8 +199,8 @@ def dividir_datos(df: pd.DataFrame, fecha_corte: str = FECHA_CORTE):
     """Entrena con el pasado y evalúa con el futuro (validación out-of-time)."""
     df = df.sort_values(COLUMNA_FECHA).reset_index(drop=True)
 
-    y = (df[TARGET_ORIGINAL] == 0).astype(int).rename(TARGET)
-    X = df.drop(columns=[TARGET_ORIGINAL])
+    y = df[TARGET]
+    X = df.drop(columns=[TARGET])
 
     es_entrenamiento = df[COLUMNA_FECHA] < pd.Timestamp(fecha_corte)
 
@@ -208,8 +228,10 @@ def obtener_datos_modelado():
 if __name__ == "__main__":
     X_train, X_test, y_train, y_test, preprocesador = obtener_datos_modelado()
 
-    print(f"Entrenamiento: {X_train.shape[0]} filas | tasa de impago {y_train.mean():.2%}")
-    print(f"Evaluación:    {X_test.shape[0]} filas | tasa de impago {y_test.mean():.2%}")
+    print(f"Entrenamiento: {X_train.shape[0]} filas | pagó a tiempo {y_train.mean():.2%} "
+          f"| no pagó {1 - y_train.mean():.2%}")
+    print(f"Evaluación:    {X_test.shape[0]} filas | pagó a tiempo {y_test.mean():.2%} "
+          f"| no pagó {1 - y_test.mean():.2%}")
 
     X_train_transformado = preprocesador.fit_transform(X_train)
     nombres = preprocesador.named_steps["columnas"].get_feature_names_out()

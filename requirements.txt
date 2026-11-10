@@ -1,9 +1,41 @@
+# ENTORNO DE DESARROLLO Y NOTEBOOKS
+# -----------------------------------------
 ipykernel==7.4.0
+joblib==1.6.0
 jupyter==1.1.1
-matplotlib==3.11.2
+
+
+# MANIPULACIÓN Y PROCESAMIENTO DE DATOS
+# -----------------------------------------
 numpy==2.5.4
 pandas==3.1.0
-scikit-learn==1.9.1
 scipy==1.18.1
-seaborn==0.13.2
 openpyxl==3.1.5
+
+# VISUALIZACIÓN DE DATOS
+# -----------------------------------------
+matplotlib==3.11.2
+seaborn==0.13.2
+
+# MACHINE LEARNING
+# -----------------------------------------
+scikit-learn==1.9.1
+
+# STREAMLIT
+# -----------------------------------------
+streamlit==1.67.0
+
+# API REST
+# -----------------------------------------
+fastapi==0.162.4
+httpx==0.28.1
+
+# TESTING
+# -----------------------------------------
+pytest==9.2.0
+pytest-cov==7.1.0
+python-multipart==0.0.33
+
+# DEPLOYMENT
+# -----------------------------------------
+uvicorn==0.54.0
