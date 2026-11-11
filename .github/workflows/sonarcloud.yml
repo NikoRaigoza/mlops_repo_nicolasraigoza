@@ -1,0 +1,35 @@
+name: Pruebas y SonarCloud
+
+on:
+  push:
+    branches: [developer, certification, main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pruebas-y-analisis:
+    name: Pruebas, cobertura y análisis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clonar el repositorio
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Instalar Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar pruebas con cobertura
+        env:
+          MPLBACKEND: Agg
+        run: pytest --cov=mlops_pipeline --cov-report=xml
+
+      - name: Análisis en SonarCloud
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
