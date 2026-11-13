@@ -1,0 +1,24 @@
+{
+  "modelo": "Regresión Logística",
+  "fecha_entrenamiento": "2026-11-10T18:42:41",
+  "variable_objetivo": "Pago_atiempo (1 = pagó a tiempo, 0 = no pagó a tiempo)",
+  "clase_de_interes": 0,
+  "umbral_decision": 0.5,
+  "regla_decision": "se predice 1 (pagará) si la probabilidad de pago >= umbral",
+  "filas_entrenamiento": 7713,
+  "metricas": {
+    "cv_auc_media": 0.6856,
+    "cv_auc_std": 0.0201,
+    "auc_train": 0.7071,
+    "brecha_sobreajuste": 0.0215,
+    "test_accuracy": 0.5338,
+    "test_balanced_accuracy": 0.5724,
+    "test_precision_no_pago": 0.0429,
+    "test_recall_no_pago": 0.6139,
+    "test_f1_no_pago": 0.0802,
+    "test_roc_auc": 0.6329,
+    "test_pr_auc_no_pago": 0.08,
+    "tiempo_entrenamiento_s": 0.0475,
+    "tiempo_prediccion_ms_1000": 2.6164
+  }
+}
